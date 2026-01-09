@@ -23,27 +23,27 @@ class ShipmentProcessor:
         # ==============================================================================
 
         try:
-            # STEP 1: Update Inventory
-            # This will raise sqlite3.IntegrityError if stock becomes negative
+        # STEP 1: Update Inventory
             cursor.execute("UPDATE inventory SET stock_qty = stock_qty - ? WHERE item_name = ?", 
                            (quantity, item_name))
             log_callback(">> STEP 1 SUCCESS: Inventory Deducted.")
 
-        except sqlite3.IntegrityError as e:
-            log_callback(f">> STEP 1 FAILED: {e}") 
-            # Hint: The code doesn't stop here! It continues to Step 2!
-
-        try:
-            # STEP 2: Log the Shipment
+        # STEP 2: Log the Shipment
             cursor.execute("INSERT INTO shipment_log (item_name, qty_moved) VALUES (?, ?)", 
                            (item_name, quantity))
             log_callback(">> STEP 2 SUCCESS: Shipment Logged.")
-        
-        except Exception as e:
-             log_callback(f">> STEP 2 FAILED: {e}")
 
-        # Final Commit
-        conn.commit()
-        log_callback("--- TRANSACTION COMMITTED ---")
+        # Wenn wir hier ankommen, war alles erfolgreich
+            conn.commit()
+            log_callback("--- TRANSACTION COMMITTED SUCCESSFULLY ---")
+
+        except Exception as e:
+            # Wenn IRGENDEIN Fehler auftritt, machen wir alles rückgängig
+            conn.rollback()
+            log_callback(f"!! TRANSACTION FAILED: {e}. Rollback executed !!")
+        
+        finally:
+            # Verbindung immer schließen, egal ob Erfolg oder Fehler
+            conn.close()
         
         conn.close()
